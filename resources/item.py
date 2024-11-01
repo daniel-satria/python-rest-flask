@@ -2,12 +2,15 @@ import uuid
 from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
+
+from schemas import ItemSchema, ItemUpdateSchema
 from db import items, stores
 
 blp = Blueprint("Items", __name__, description="Operation on items.")
 
 @blp.route("/item/<string:itemID>")
 class Item(MethodView):
+    @blp.response(200, ItemSchema)
     def get(self, itemID):
         try:
             return items[itemID]
@@ -22,21 +25,14 @@ class Item(MethodView):
             abort(404, message="Item not found.")
 
     # Update item
-    def put(self, itemID):
-        item_data = request.get_json()
-        # There's  more validation to do here!
-        # Like making sure price is a number, and also both items are optional
-        # Difficult to do with an if statement...
-        if ("price" not in item_data) or ("name" not in item_data):
-            abort(
-                400,
-                message="Bad request. Ensure 'price', and 'name' are included in the JSON payload.",
-            )
+    @blp.arguments(ItemUpdateSchema)
+    @blp.response(200, ItemSchema)
+    def put(self, itemData, itemID):
         try:
             item = items[itemID]
 
             # https://blog.teclado.com/python-dictionary-merge-update-operators/
-            item |= item_data
+            item |= itemData
 
             return item
         except KeyError:
@@ -45,18 +41,13 @@ class Item(MethodView):
 
 @blp.route("/item")
 class ItemList(MethodView):
+    @blp.response(200, ItemSchema(many=True))
     def get(self):
-        return {"items": list(items.values())}
+        return items.values()
     
-    def post(self):
-        itemData = request.get_json()
-        
-        if ("price" not in itemData or
-            "store_id" not in itemData or
-            "name" not in itemData
-        ):
-            abort(400, message="Bad request. Ensure price, store_id, and name included in JSON payload.")
-            
+    @blp.arguments(ItemSchema)    
+    @blp.response(201, ItemSchema)
+    def post(self, itemData):
         for item in items.values():
             if (
             itemData["name"] == item["name"] and

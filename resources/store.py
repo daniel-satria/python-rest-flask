@@ -2,6 +2,8 @@ import uuid
 from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
+
+from schemas import StoreSchema
 from db import stores
 
 
@@ -15,6 +17,7 @@ class CheckServer(MethodView):
 
 @blp.route("/store/<string:store_id>")
 class Store(MethodView):
+    @blp.response(200, StoreSchema)
     def get(self, store_id):
         try:
             # You presumably would want to include the store's items here too
@@ -33,22 +36,19 @@ class Store(MethodView):
 
 @blp.route("/store")
 class StoreList(MethodView):
+    @blp.response(201, StoreSchema(many=True))
     def get(self):
-        return {"stores": list(stores.values())}
+        return stores.values()
 
-    def post(self):
-        store_data = request.get_json()
-        if "name" not in store_data:
-            abort(
-                400,
-                message="Bad request. Ensure 'name' is included in the JSON payload.",
-            )
+    @blp.arguments(StoreSchema)
+    @blp.response(200, StoreSchema)
+    def post(self, storeData):
         for store in stores.values():
-            if store_data["name"] == store["name"]:
+            if storeData["name"] == store["name"]:
                 abort(400, message=f"Store already exists.")
 
         store_id = uuid.uuid4().hex
-        store = {**store_data, "id": store_id}
+        store = {**storeData, "id": store_id}
         stores[store_id] = store
 
         return store
