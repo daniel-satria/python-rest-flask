@@ -2,9 +2,11 @@ import uuid
 from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
+from sqlalchemy.exc import SQLAlchemyError
 
+from db import db
+from models import ItemModel
 from schemas import ItemSchema, ItemUpdateSchema
-from db import items, stores
 
 blp = Blueprint("Items", __name__, description="Operation on items.")
 
@@ -12,54 +14,47 @@ blp = Blueprint("Items", __name__, description="Operation on items.")
 class Item(MethodView):
     @blp.response(200, ItemSchema)
     def get(self, itemID):
-        try:
-            return items[itemID]
-        except KeyError:
-            abort(404, message="Item not found.")
+        item = ItemModel.query.get_or_404(itemID)
+        return item
             
     def delete(self, itemID):
-        try:
-            del items[itemID]
-            return {"message": "Item deleted."}
-        except KeyError:
-            abort(404, message="Item not found.")
-
+        item = ItemModel.query.get_or_404(itemID)
+        db.session.delete(item)
+        db.session.commit()
+        return {"message": "Item deleted"}
+    
     # Update item
     @blp.arguments(ItemUpdateSchema)
     @blp.response(200, ItemSchema)
     def put(self, itemData, itemID):
-        try:
-            item = items[itemID]
+        item = ItemModel.query.get(itemID)
+        if item:
+            item.price = itemData["price"]
+            item.name = itemData["name"]
+        else:
+            item = ItemModel(id=itemID, **itemData)
 
-            # https://blog.teclado.com/python-dictionary-merge-update-operators/
-            item |= itemData
-
-            return item
-        except KeyError:
-            abort(404, message="Item not found.")
-
-
+        db.session.add(item)
+        db.session.commit()
+        
+        return item
+    
 @blp.route("/item")
 class ItemList(MethodView):
     @blp.response(200, ItemSchema(many=True))
     def get(self):
-        return items.values()
+        return ItemModel.query.all()
     
     @blp.arguments(ItemSchema)    
     @blp.response(201, ItemSchema)
     def post(self, itemData):
-        for item in items.values():
-            if (
-            itemData["name"] == item["name"] and
-            itemData["store_id"] == item["store_id"]  
-            ):
-                abort(400, message=f"Item already exist.")
+        item = ItemModel(**itemData)
         
-        if itemData["store_id"] not in stores:
-            abort(404, message="Store not found!")
-            
-        itemID = uuid.uuid4().hex
-        item = {**itemData, "id":itemID}
-        items[itemID] = item
+        try:
+            db.session.add(item)
+            db.session.commit()
+        except SQLAlchemyError:
+            abort(500, message="An error occurred while inserting items.")
+        
         
         return item, 201
