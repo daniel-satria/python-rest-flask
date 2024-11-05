@@ -8,6 +8,7 @@ import models
 
 from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
+from resources.tag import blp as TagBlueprint
 
 
 def create_app(port, host="0.0.0.0", db_url=None):
@@ -27,12 +28,12 @@ def create_app(port, host="0.0.0.0", db_url=None):
     api = Api(app)
     
     with app.app_context():
-        def create_table():
-            db.create_all()
+        db.create_all()
 
     api.register_blueprint(ItemBlueprint)
     api.register_blueprint(StoreBlueprint)
-
+    api.register_blueprint(TagBlueprint)
+    
     return app.run(host=host, port=port)
 
 if __name__=="__main__":
