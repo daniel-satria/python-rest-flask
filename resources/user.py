@@ -1,4 +1,5 @@
 from flask.views import MethodView
+from flask.typing import ResponseReturnValue
 from flask_smorest import Blueprint, abort
 from passlib.hash import pbkdf2_sha256
 from flask_jwt_extended import (create_access_token, 
@@ -20,7 +21,7 @@ blp = Blueprint("Users", "users", description="Operations on users.")
 @blp.route("/register")
 class UserRegister(MethodView):
     @blp.arguments(UserSchema)
-    def post(self, user_data:dict) -> dict:
+    def post(self, user_data:dict) -> ResponseReturnValue:
         if UserModel.query.filter(UserModel.username == user_data["username"]).first():
             abort(409,
                   message="A user with that username already exists.")
@@ -37,7 +38,7 @@ class UserRegister(MethodView):
 @blp.route("/login")
 class UserLogin(MethodView):
     @blp.arguments(UserSchema)
-    def post(self, user_data:dict) -> dict:
+    def post(self, user_data:dict) -> ResponseReturnValue:
         user = UserModel.query.filter(
             UserModel.username == user_data["username"]
         ).first()
@@ -53,17 +54,17 @@ class UserLogin(MethodView):
 @blp.route("/refresh")
 class TokenRefresh(MethodView):
     @jwt_required(refresh=True)
-    def post(self):
+    def post(self) -> ResponseReturnValue:
         current_user = get_jwt_identity()
-        new_token = create_access_token(identity=current_user, refresh=False)
+        new_token = create_access_token(identity=current_user, fresh=False)
         jti = get_jwt()['jti']
         BLOCKLIST.add(jti)
-        return {"access_token": new_token}
+        return {"access_token": new_token}, 200
         
 @blp.route("/logout")
 class UserLogout(MethodView):
     @jwt_required()
-    def post(self) -> dict:
+    def post(self) -> ResponseReturnValue:
         jti = get_jwt()["jti"]
         BLOCKLIST.add(jti)
         return {"message": "Successfully logged out."}
@@ -72,11 +73,11 @@ class UserLogout(MethodView):
 @blp.route("/user/<int:user_id>")
 class User(MethodView):
     @blp.response(200, UserSchema)
-    def get(self, user_id:int) -> dict:
+    def get(self, user_id:int) -> ResponseReturnValue:
         user = UserModel.query.get_or_404(user_id)
         return user
     
-    def delete(self, user_id:int) -> dict:
+    def delete(self, user_id:int) -> ResponseReturnValue:
         user = UserModel.query.get_or_404(user_id)
         db.session.delete(user)
         db.session.commit()
