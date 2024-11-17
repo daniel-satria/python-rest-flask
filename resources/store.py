@@ -15,14 +15,14 @@ class CheckServer(MethodView):
     def get(self):
         return "Server is Up!"
 
-@blp.route("/store/<string:store_id>")
+@blp.route("/store/<int:store_id>")
 class Store(MethodView):
     @blp.response(200, StoreSchema)
-    def get(self, store_id):
+    def get(self, store_id:int) -> dict:
         store = StoreModel.query.get_or_404(store_id)
         return store
 
-    def delete(self, store_id):
+    def delete(self, store_id:int) -> dict:
         store = StoreModel.query.get_or_404(store_id)
         db.session.delete(store)
         db.session.commit()
@@ -31,12 +31,12 @@ class Store(MethodView):
 @blp.route("/store")
 class StoreList(MethodView):
     @blp.response(200, StoreSchema(many=True))
-    def get(self):
+    def get(self) -> dict:
         return StoreModel.query.all()
 
     @blp.arguments(StoreSchema)
     @blp.response(201, StoreSchema)
-    def post(self, storeData):
+    def post(self, storeData:dict) -> dict:
         store = StoreModel(**storeData)
         try:
             db.session.add(store)

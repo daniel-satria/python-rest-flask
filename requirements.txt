@@ -10,3 +10,5 @@ packaging
 python-dotenv
 webargs
 Werkzeug
+flask-jwt-extended
+passlib
