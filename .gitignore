@@ -3,7 +3,8 @@ __pycache__
 .venv
 .env
 
+instance
+migrations
+
 models/__pycache__
 resources/__pycache__
-
-instance

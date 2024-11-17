@@ -3,6 +3,7 @@ import os
 from flask import Flask, jsonify
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
 from dotenv import load_dotenv
 
 from db import db
@@ -18,7 +19,7 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-def create_app(port, host="0.0.0.0", db_url=None):
+def create_app(db_url=None):
     app = Flask(__name__)
 
     app.config["PROPAGATE_EXCEPTIONS"] = True
@@ -31,8 +32,9 @@ def create_app(port, host="0.0.0.0", db_url=None):
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URI", "sqlite:///data.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIOn"] = False
     app.config["JWT_SECRET_KEY"] = SECRET_KEY
+    
     db.init_app(app)
-
+    migrate = Migrate(app, db)
     api = Api(app)
     
     jwt = JWTManager(app)
@@ -105,16 +107,13 @@ def create_app(port, host="0.0.0.0", db_url=None):
             ),
             401,
         )
-    
-    with app.app_context():
-        db.create_all()
 
     api.register_blueprint(ItemBlueprint)
     api.register_blueprint(StoreBlueprint)
     api.register_blueprint(TagBlueprint)
     api.register_blueprint(UserBlueprint)
     
-    return app.run(host=host, port=port)
+    return app
 
 if __name__=="__main__":
-    create_app(port=8000)
+    create_app().run(port=8000, host="0.0.0.0")
