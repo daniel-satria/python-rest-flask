@@ -12,3 +12,4 @@ webargs
 Werkzeug
 flask-jwt-extended
 passlib
+flask-migrate
