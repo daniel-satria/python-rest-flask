@@ -13,3 +13,5 @@ Werkzeug
 flask-jwt-extended
 passlib
 flask-migrate
+psycopg2
+gunicorn

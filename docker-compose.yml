@@ -1,4 +1,3 @@
-version: "3"
 services:
   web:
     build: .
@@ -6,3 +5,15 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+  db:
+    image: postgres
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:
